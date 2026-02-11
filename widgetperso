@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Grist Map (OSM)</title>
+
+  <!-- Grist Custom Widget API -->
+  <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+        crossorigin=""/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+          crossorigin=""></script>
+
+  <style>
+    html, body { height: 100%; margin: 0; }
+    #wrap { height: 100%; display: flex; flex-direction: column; }
+    #status { padding: 8px 10px; font: 13px/1.3 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+    #map { flex: 1; min-height: 300px; }
+    .muted { color: #666; }
+    .err { color: #a00; }
+  </style>
+</head>
+
+<body>
+  <div id="wrap">
+    <div id="status" class="muted">En attente des données Grist…</div>
+    <div id="map"></div>
+  </div>
+
+  <script>
+    const statusEl = document.getElementById('status');
+
+    function setStatus(msg, cls) {
+      statusEl.className = cls || 'muted';
+      statusEl.textContent = msg;
+    }
+
+    // Init map
+    const map = L.map('map', { zoomControl: true });
+
+    // OSM tiles (standard)
+    const tiles = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors'
+    });
+    tiles.addTo(map);
+
+    const markersLayer = L.layerGroup().addTo(map);
+
+    // Default view (France)
+    map.setView([46.5, 2.5], 6);
+
+    function toNumber(v) {
+      if (v === null || v === undefined || v === '') return null;
+      const n = Number(v);
+      return Number.isFinite(n) ? n : null;
+    }
+
+    function clearMarkers() {
+      markersLayer.clearLayers();
+    }
+
+    function renderMarkers(records) {
+      clearMarkers();
+
+      const bounds = [];
+      let count = 0;
+
+      for (const record of records || []) {
+        // record here is already a plain object like {A:..., B:...}
+        // Apply Grist column mapping (important if user renames columns)
+        const r = grist.mapColumnNames(record);
+        if (!r) continue;
+
+        const lat = toNumber(r.Latitude);
+        const lon = toNumber(r.Longitude);
+
+        if (lat === null || lon === null) continue;
+
+        const label = (r.Label || r.Nom || r.Name || r.Titre || '').toString();
+        const rowId = record.id ?? record.ID ?? record.Id;
+
+        const marker = L.marker([lat, lon]);
+        const popup = `
+          <div style="font:13px/1.3 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif">
+            ${label ? `<div><b>${escapeHtml(label)}</b></div>` : ''}
+            ${(rowId !== undefined) ? `<div class="muted">Row ID: ${escapeHtml(String(rowId))}</div>` : ''}
+            <div class="muted">${lat.toFixed(6)}, ${lon.toFixed(6)}</div>
+          </div>
+        `;
+        marker.bindPopup(popup);
+        marker.addTo(markersLayer);
+
+        bounds.push([lat, lon]);
+        count++;
+      }
+
+      if (count === 0) {
+        setStatus("Aucun point affichable (Latitude/Longitude manquantes ou non numériques).", "err");
+        return;
+      }
+
+      setStatus(`${count} point(s) affiché(s).`, "muted");
+
+      if (bounds.length === 1) {
+        map.setView(bounds[0], 14);
+      } else {
+        map.fitBounds(bounds, { padding: [20, 20] });
+      }
+    }
+
+    // Minimal HTML escaping for popup
+    function escapeHtml(s) {
+      return s.replace(/[&<>"']/g, (c) => ({
+        '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+      }[c]));
+    }
+
+    // Tell Grist what columns we want the user to map
+    grist.ready({
+      columns: [
+        { name: "Latitude",  title: "Latitude",  type: "Numeric", optional: false },
+        { name: "Longitude", title: "Longitude", type: "Numeric", optional: false },
+        { name: "Label",     title: "Libellé (optionnel)", type: "Text", optional: true }
+      ]
+    });
+
+    // Render based on selected records (or whole table depending on widget linking)
+    grist.onRecords((records) => {
+      setStatus("Données reçues, rendu de la carte…", "muted");
+      renderMarkers(records);
+    });
+
+    // If you prefer cursor-only behavior instead, you could use grist.onRecord.
+  </script>
+</body>
+</html>
