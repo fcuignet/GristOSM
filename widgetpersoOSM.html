@@ -90,6 +90,23 @@
       return Number.isFinite(n) ? n : null;
     }
 
+    function toDisplayValue(v) {
+      if (v === null || v === undefined || v === '') return null;
+      if (Array.isArray(v)) {
+        const clean = v.map((item) => String(item).trim()).filter(Boolean);
+        return clean.length ? clean.join(' | ') : null;
+      }
+      if (typeof v === 'object') {
+        try {
+          return JSON.stringify(v);
+        } catch (e) {
+          return String(v);
+        }
+      }
+      const out = String(v).trim();
+      return out || null;
+    }
+
     function clearMarkers() {
       markersLayer.clearLayers();
     }
@@ -108,13 +125,8 @@
     }
 
     function normalizeColorValue(raw) {
-      if (raw === null || raw === undefined || raw === '') return null;
       if (typeof raw === 'boolean') return raw ? 'true' : 'false';
-      if (Array.isArray(raw)) {
-        const clean = raw.map((v) => String(v).trim()).filter(Boolean);
-        return clean.length ? clean.join(' | ') : null;
-      }
-      return String(raw).trim() || null;
+      return toDisplayValue(raw);
     }
 
     function hashString(s) {
@@ -150,7 +162,7 @@
         mappedRecord.Label4
       ];
       return values
-        .map((v) => (v === null || v === undefined ? '' : String(v).trim()))
+        .map((v) => toDisplayValue(v))
         .filter(Boolean);
     }
 
@@ -289,13 +301,13 @@
       columns: [
         { name: "Latitude",  title: "Latitude",  type: "Numeric", optional: false },
         { name: "Longitude", title: "Longitude", type: "Numeric", optional: false },
-        { name: "Label", title: "Étiquette 1 (optionnel)", type: "Text", optional: true },
-        { name: "Label2", title: "Étiquette 2 (optionnel)", type: "Text", optional: true },
-        { name: "Label3", title: "Étiquette 3 (optionnel)", type: "Text", optional: true },
-        { name: "Label4", title: "Étiquette 4 (optionnel)", type: "Text", optional: true },
+        { name: "Label", title: "Nom (obligatoire)", type: "Text", optional: false },
+        { name: "Label2", title: "Étiquette 2 (optionnel, tout type)", optional: true },
+        { name: "Label3", title: "Étiquette 3 (optionnel, tout type)", optional: true },
+        { name: "Label4", title: "Étiquette 4 (optionnel, tout type)", optional: true },
         { name: "MarkerSize", title: "Valeur taille marqueur (optionnel)", type: "Numeric", optional: true },
         { name: "MarkerSizeCap", title: "Plafond taille marqueur (optionnel)", type: "Numeric", optional: true },
-        { name: "ColorBy", title: "Colonne pour colorer (choix/bool) (optionnel)", type: "Text", optional: true }
+        { name: "ColorBy", title: "Colonne pour colorer (optionnel, tout type)", optional: true }
       ]
     });
 

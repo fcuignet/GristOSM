@@ -38,10 +38,11 @@ Si tu n'utilises pas de stockage local, tu peux tout faire directement depuis l'
 3. Mapper les colonnes :
    - `Latitude` (numérique)
    - `Longitude` (numérique)
-   - `Label`, `Label2`, `Label3`, `Label4` (texte, optionnel) : jusqu'à 4 étiquettes affichables
+   - `Label` (texte, obligatoire) : nom principal
+   - `Label2`, `Label3`, `Label4` (optionnel, tout type : texte / entier / choix / numérique / booléen)
    - `MarkerSize` (numérique, optionnel) : valeur pour agrandir/réduire le marqueur
    - `MarkerSizeCap` (numérique, optionnel) : plafond max pour la valeur de taille
-   - `ColorBy` (optionnel) : colonne de type choix simple, choix multiple ou booléen pour la couleur
+   - `ColorBy` (optionnel, tout type) : texte / entier / choix simple / choix multiple / numérique / booléen pour la couleur
 
 Si `MarkerSize` est absent, le marqueur garde une taille standard.
 Si `MarkerSize` est présent, la taille est mise à l'échelle jusqu'au plafond (`MarkerSizeCap`),
