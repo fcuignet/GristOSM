@@ -80,6 +80,13 @@
       '#2a7fff', '#ff7f2a', '#7f3fbf', '#14a085', '#d35400',
       '#c0392b', '#1f8a4c', '#6c5ce7', '#8e44ad', '#16a085'
     ];
+    const PALETTES = {
+      default: CHOICE_PALETTE,
+      pastel: ['#8ecae6', '#ffb4a2', '#bde0fe', '#cdb4db', '#b7e4c7', '#ffd6a5', '#caffbf', '#a0c4ff'],
+      vivid: ['#ff006e', '#3a86ff', '#8338ec', '#ffbe0b', '#fb5607', '#06d6a0', '#118ab2', '#ef476f'],
+      earth: ['#588157', '#a3b18a', '#bc6c25', '#dda15e', '#6c584c', '#7f5539', '#8d6e63', '#9c6644'],
+      grayscale: ['#111111', '#333333', '#555555', '#777777', '#999999', '#bbbbbb', '#dddddd']
+    };
 
     // Default view (France)
     map.setView([46.5, 2.5], 6);
@@ -138,7 +145,29 @@
       return Math.abs(h);
     }
 
-    function buildMarkerStyle(colorValue) {
+    function parseCustomPalette(raw) {
+      const display = toDisplayValue(raw);
+      if (!display) return null;
+      const colors = display
+        .split(/[|,;]/)
+        .map((v) => v.trim())
+        .filter((v) => /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(v));
+      return colors.length >= 2 ? colors : null;
+    }
+
+    function resolvePalette(rawPalette) {
+      if (rawPalette === null || rawPalette === undefined || rawPalette === '') {
+        return CHOICE_PALETTE;
+      }
+
+      const key = String(rawPalette).trim().toLowerCase();
+      if (PALETTES[key]) return PALETTES[key];
+
+      const custom = parseCustomPalette(rawPalette);
+      return custom || CHOICE_PALETTE;
+    }
+
+    function buildMarkerStyle(colorValue, palette) {
       if (!colorValue) {
         return { stroke: DEFAULT_STROKE_COLOR, fill: DEFAULT_FILL_COLOR };
       }
@@ -149,8 +178,9 @@
         return { stroke: '#8d2d2d', fill: '#d24a4a' };
       }
 
-      const idx = hashString(colorValue) % CHOICE_PALETTE.length;
-      const fill = CHOICE_PALETTE[idx];
+      const safePalette = (palette && palette.length > 0) ? palette : CHOICE_PALETTE;
+      const idx = hashString(colorValue) % safePalette.length;
+      const fill = safePalette[idx];
       return { stroke: fill, fill };
     }
 
@@ -189,6 +219,7 @@
       clearMarkers();
 
       const points = [];
+      let paletteInput = null;
 
       for (const record of records || []) {
         // record here is already a plain object like {A:..., B:...}
@@ -205,6 +236,11 @@
         const rawCap = toNumber(r.MarkerSizeCap || r.TailleMax || r.MaxSize || r.Maximum);
         const labels = collectExtraLabels(r);
         const colorValue = normalizeColorValue(r.ColorBy || r.MarkerColorBy || r.Categorie || r.Category || r.Statut || r.Status || r.Etat || r.Active);
+        const paletteCandidate = r.ColorPalette || r.PaletteCouleurs || r.Palette || r.ColorScheme;
+        if (paletteInput === null) {
+          const parsed = toDisplayValue(paletteCandidate);
+          if (parsed) paletteInput = parsed;
+        }
         const rowId = record.id ?? record.ID ?? record.Id;
 
         points.push({ lat, lon, rawSize, rawCap, labels, colorValue, rowId });
@@ -224,11 +260,12 @@
       const bounds = [];
       let count = 0;
       const legendMap = new Map();
+      const colorPalette = resolvePalette(paletteInput);
 
       for (const point of points) {
         const capToUse = (point.rawCap !== null && point.rawCap > 0) ? point.rawCap : fallbackCap;
         const circleRadius = buildCircleRadius(point.rawSize, capToUse);
-        const markerStyle = buildMarkerStyle(point.colorValue);
+        const markerStyle = buildMarkerStyle(point.colorValue, colorPalette);
         if (point.colorValue) {
           legendMap.set(point.colorValue, markerStyle.fill);
         }
@@ -307,7 +344,8 @@
         { name: "Label4", title: "Étiquette 4 (optionnel, tout type)", optional: true },
         { name: "MarkerSize", title: "Valeur taille marqueur (optionnel)", type: "Numeric", optional: true },
         { name: "MarkerSizeCap", title: "Plafond taille marqueur (optionnel)", type: "Numeric", optional: true },
-        { name: "ColorBy", title: "Colonne pour colorer (optionnel, tout type)", optional: true }
+        { name: "ColorBy", title: "Colonne pour colorer (optionnel, tout type)", optional: true },
+        { name: "ColorPalette", title: "Palette couleurs (optionnel: default/pastel/vivid/earth/grayscale ou #hex,#hex...)", optional: true }
       ]
     });
 

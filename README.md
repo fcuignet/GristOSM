@@ -43,6 +43,7 @@ Si tu n'utilises pas de stockage local, tu peux tout faire directement depuis l'
    - `MarkerSize` (numérique, optionnel) : valeur pour agrandir/réduire le marqueur
    - `MarkerSizeCap` (numérique, optionnel) : plafond max pour la valeur de taille
    - `ColorBy` (optionnel, tout type) : texte / entier / choix simple / choix multiple / numérique / booléen pour la couleur
+   - `ColorPalette` (optionnel) : `default`, `pastel`, `vivid`, `earth`, `grayscale` ou une liste hex (`#2a7fff,#ff7f2a,#14a085`)
 
 Si `MarkerSize` est absent, le marqueur garde une taille standard.
 Si `MarkerSize` est présent, la taille est mise à l'échelle jusqu'au plafond (`MarkerSizeCap`),
@@ -53,6 +54,8 @@ Si `ColorBy` est renseigné, la couleur du marqueur change selon la valeur :
 - choix simple ou multiple : couleur déterministe par valeur.
 
 Une légende de colorisation apparaît automatiquement sous la carte avec les catégories présentes.
+
+Une palette personnalisée peut être choisie globalement via `ColorPalette`.
 
 ## Licence
 
