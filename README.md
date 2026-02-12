@@ -51,6 +51,8 @@ Si `ColorBy` est renseigné, la couleur du marqueur change selon la valeur :
 - booléen `true`/`false` : couleurs dédiées,
 - choix simple ou multiple : couleur déterministe par valeur.
 
+Une légende de colorisation apparaît automatiquement sous la carte avec les catégories présentes.
+
 ## Licence
 
 Ce projet est distribué sous **GNU GPL v3** (voir `LICENSE`).

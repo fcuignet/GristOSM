@@ -23,6 +23,16 @@
     #map { flex: 1; min-height: 300px; }
     .muted { color: #666; }
     .err { color: #a00; }
+    #legend {
+      display: none;
+      padding: 8px 10px;
+      font: 12px/1.3 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      border-top: 1px solid #ddd;
+      background: #fafafa;
+    }
+    #legend .legend-title { font-weight: 600; margin-bottom: 4px; }
+    #legend .legend-item { display: flex; align-items: center; gap: 6px; margin: 2px 0; }
+    #legend .legend-swatch { width: 11px; height: 11px; border-radius: 50%; border: 1px solid rgba(0,0,0,0.35); }
     .marker-label {
       background: rgba(255, 255, 255, 0.86);
       border: 1px solid rgba(70, 70, 70, 0.35);
@@ -39,10 +49,12 @@
   <div id="wrap">
     <div id="status" class="muted">En attente des données Grist…</div>
     <div id="map"></div>
+    <div id="legend"></div>
   </div>
 
   <script>
     const statusEl = document.getElementById('status');
+    const legendEl = document.getElementById('legend');
 
     function setStatus(msg, cls) {
       statusEl.className = cls || 'muted';
@@ -142,6 +154,25 @@
         .filter(Boolean);
     }
 
+
+    function renderLegend(colorEntries) {
+      if (!colorEntries || colorEntries.length === 0) {
+        legendEl.style.display = 'none';
+        legendEl.innerHTML = '';
+        return;
+      }
+
+      const items = colorEntries
+        .map(({ value, fill }) => {
+          const label = value === 'true' ? 'true (booléen)' : (value === 'false' ? 'false (booléen)' : value);
+          return `<div class="legend-item"><span class="legend-swatch" style="background:${fill}"></span><span>${escapeHtml(label)}</span></div>`;
+        })
+        .join('');
+
+      legendEl.innerHTML = `<div class="legend-title">Légende de colorisation</div>${items}`;
+      legendEl.style.display = 'block';
+    }
+
     function renderMarkers(records) {
       clearMarkers();
 
@@ -168,6 +199,7 @@
       }
 
       if (points.length === 0) {
+        renderLegend([]);
         setStatus("Aucun point affichable (Latitude/Longitude manquantes ou non numériques).", "err");
         return;
       }
@@ -179,11 +211,15 @@
 
       const bounds = [];
       let count = 0;
+      const legendMap = new Map();
 
       for (const point of points) {
         const capToUse = (point.rawCap !== null && point.rawCap > 0) ? point.rawCap : fallbackCap;
         const circleRadius = buildCircleRadius(point.rawSize, capToUse);
         const markerStyle = buildMarkerStyle(point.colorValue);
+        if (point.colorValue) {
+          legendMap.set(point.colorValue, markerStyle.fill);
+        }
         const useCircleMarker = circleRadius !== null || point.colorValue !== null;
 
         const marker = useCircleMarker
@@ -231,6 +267,7 @@
         count++;
       }
 
+      renderLegend(Array.from(legendMap, ([value, fill]) => ({ value, fill })));
       setStatus(`${count} point(s) affiché(s).`, "muted");
 
       if (bounds.length === 1) {
