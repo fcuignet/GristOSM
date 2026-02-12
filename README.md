@@ -1,5 +1,51 @@
 # gristopenstreetmap
-widget de carto avec openstreetmap
 
-sur le modèle du widget / de la vue fournie dans le menu des widgets personnalisés, mais recourrant à OpenStreetMap pour fournir le fond de carte et leafletjs pour le moteur.
-Il ajoute aussi la possibilité de rajouter plusieurs étiquettes
+Widget de cartographie Grist basé sur OpenStreetMap + Leaflet.
+
+Ce projet reprend l'idée du widget/vue carte de Grist, mais utilise :
+- **OpenStreetMap** pour le fond de carte,
+- **Leaflet** pour le moteur cartographique,
+- et permet d'afficher plusieurs points avec un libellé.
+
+## Fichier principal
+
+- `widgetpersoOSM.html` : widget autonome (HTML + CSS + JS).
+
+## Publier le fichier HTML via GitHub (sans stockage local)
+
+Si tu n'utilises pas de stockage local, tu peux tout faire directement depuis l'interface web GitHub.
+
+### Étapes (100% navigateur)
+1. Créer un dépôt GitHub public (ex: `gristopenstreetmap`).
+2. Dans le dépôt, cliquer **Add file** → **Upload files**.
+3. Déposer `widgetpersoOSM.html` (et éventuellement `README.md`, `LICENSE`).
+4. Valider avec **Commit changes**.
+5. Ouvrir **Settings** → **Pages**.
+6. Dans **Build and deployment** :
+   - **Source** = *Deploy from a branch*
+   - **Branch** = `main` (root)
+   - **Save**
+7. Attendre l'URL GitHub Pages (format `https://<user>.github.io/<repo>/`).
+8. Utiliser dans Grist l'URL directe du fichier :
+   - `https://<user>.github.io/<repo>/widgetpersoOSM.html`
+
+> Important : l'URL du widget doit être publique en HTTPS, servir directement le HTML, et ne pas demander d'authentification.
+
+## Utilisation dans Grist
+
+1. Ajouter un widget personnalisé.
+2. Pointer vers l'URL publique de `widgetpersoOSM.html`.
+3. Mapper les colonnes :
+   - `Latitude` (numérique)
+   - `Longitude` (numérique)
+   - `Label` (texte, optionnel)
+   - `MarkerSize` (numérique, optionnel) : valeur pour agrandir/réduire le marqueur
+   - `MarkerSizeCap` (numérique, optionnel) : plafond max pour la valeur de taille
+
+Si `MarkerSize` est absent, le marqueur garde une taille standard.
+Si `MarkerSize` est présent, la taille est mise à l'échelle jusqu'au plafond (`MarkerSizeCap`),
+ou jusqu'au maximum observé si le plafond n'est pas fourni.
+
+## Licence
+
+Ce projet est distribué sous **GNU GPL v3** (voir `LICENSE`).
