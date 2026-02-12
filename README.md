@@ -11,25 +11,7 @@ Ce projet reprend l'idée du widget/vue carte de Grist, mais utilise :
 
 - `widgetpersoOSM.html` : widget autonome (HTML + CSS + JS).
 
-## Publier le fichier HTML via GitHub (sans stockage local)
 
-Si tu n'utilises pas de stockage local, tu peux tout faire directement depuis l'interface web GitHub.
-
-### Étapes (100% navigateur)
-1. Créer un dépôt GitHub public (ex: `gristopenstreetmap`).
-2. Dans le dépôt, cliquer **Add file** → **Upload files**.
-3. Déposer `widgetpersoOSM.html` (et éventuellement `README.md`, `LICENSE`).
-4. Valider avec **Commit changes**.
-5. Ouvrir **Settings** → **Pages**.
-6. Dans **Build and deployment** :
-   - **Source** = *Deploy from a branch*
-   - **Branch** = `main` (root)
-   - **Save**
-7. Attendre l'URL GitHub Pages (format `https://<user>.github.io/<repo>/`).
-8. Utiliser dans Grist l'URL directe du fichier :
-   - `https://<user>.github.io/<repo>/widgetpersoOSM.html`
-
-> Important : l'URL du widget doit être publique en HTTPS, servir directement le HTML, et ne pas demander d'authentification.
 
 ## Utilisation dans Grist
 
