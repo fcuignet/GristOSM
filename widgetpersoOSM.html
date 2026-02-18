@@ -15,6 +15,7 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
           integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
           crossorigin=""></script>
+  <script src="https://unpkg.com/shpjs@latest/dist/shp.min.js"></script>
 
   <style>
     html, body { height: 100%; margin: 0; }
@@ -96,6 +97,7 @@
     };
 
     let markerLayerControl = null;
+    let activeOverlayLayers = [];
     map.setView([46.5, 2.5], 6);
 
     function toNumber(v) {
@@ -194,18 +196,57 @@
       legendEl.style.display = 'block';
     }
 
-    function clearMarkerControl() {
+    function clearLayerControlAndOverlays() {
       if (markerLayerControl) {
         markerLayerControl.remove();
         markerLayerControl = null;
       }
+      for (const layer of activeOverlayLayers) {
+        if (layer && map.hasLayer(layer)) {
+          map.removeLayer(layer);
+        }
+      }
+      activeOverlayLayers = [];
     }
 
-    function renderMarkers(records) {
-      clearMarkerControl();
+    async function loadBoundaryGeoLayer(boundaryUrl, boundaryName) {
+      const url = toDisplayValue(boundaryUrl);
+      if (!url) return null;
+
+      const lower = url.toLowerCase();
+      let geojson;
+
+      if (lower.endsWith('.json') || lower.endsWith('.geojson')) {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        geojson = await res.json();
+      } else if (lower.endsWith('.shp') || lower.endsWith('.zip')) {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const buf = await res.arrayBuffer();
+        geojson = await shp(buf);
+      } else {
+        throw new Error('Format non supporté (attendu: .json/.geojson/.shp/.zip)');
+      }
+
+      const style = {
+        color: '#5e5e5e',
+        weight: 1.4,
+        fillColor: '#bbbbbb',
+        fillOpacity: 0.08
+      };
+      const layer = L.geoJSON(geojson, { style });
+      layer._gristLayerName = toDisplayValue(boundaryName) || 'Contours';
+      return layer;
+    }
+
+    async function renderMarkers(records) {
+      clearLayerControlAndOverlays();
 
       const points = [];
       let paletteInput = null;
+      let boundaryUrl = null;
+      let boundaryName = null;
 
       for (const record of records || []) {
         const r = grist.mapColumnNames(record);
@@ -225,8 +266,17 @@
           const parsed = toDisplayValue(paletteCandidate);
           if (parsed) paletteInput = parsed;
         }
-        const rowId = record.id ?? record.ID ?? record.Id;
 
+        if (boundaryUrl === null) {
+          const maybeBoundaryUrl = toDisplayValue(r.BoundaryUrl || r.ContoursUrl || r.ShapefileUrl || r.GeoJsonUrl);
+          if (maybeBoundaryUrl) boundaryUrl = maybeBoundaryUrl;
+        }
+        if (boundaryName === null) {
+          const maybeBoundaryName = toDisplayValue(r.BoundaryLayerName || r.ContoursNom || r.NomContours);
+          if (maybeBoundaryName) boundaryName = maybeBoundaryName;
+        }
+
+        const rowId = record.id ?? record.ID ?? record.Id;
         points.push({ lat, lon, rawSize, rawCap, labels, colorValue, rowId, layerName });
       }
 
@@ -291,11 +341,23 @@
           overlayLayers.set(point.layerName, L.layerGroup().addTo(map));
         }
         marker.addTo(overlayLayers.get(point.layerName));
-
         bounds.push([point.lat, point.lon]);
       }
 
+      if (boundaryUrl) {
+        try {
+          const boundaryLayer = await loadBoundaryGeoLayer(boundaryUrl, boundaryName);
+          if (boundaryLayer) {
+            boundaryLayer.addTo(map);
+            overlayLayers.set(boundaryLayer._gristLayerName || 'Contours', boundaryLayer);
+          }
+        } catch (err) {
+          setStatus(`Contours non chargés: ${err.message}`, 'err');
+        }
+      }
+
       const overlayObject = Object.fromEntries(overlayLayers.entries());
+      activeOverlayLayers = Object.values(overlayObject);
       markerLayerControl = L.control.layers(baseLayers, overlayObject, { collapsed: false }).addTo(map);
 
       renderLegend(Array.from(legendMap, ([value, fill]) => ({ value, fill })));
@@ -323,6 +385,8 @@
         { name: "Label3", title: "Étiquette 3 (optionnel, tout type)", optional: true },
         { name: "Label4", title: "Étiquette 4 (optionnel, tout type)", optional: true },
         { name: "Layer", title: "Calque / groupe (optionnel)", optional: true },
+        { name: "BoundaryUrl", title: "URL contours (.json/.geojson/.shp/.zip) (optionnel)", optional: true },
+        { name: "BoundaryLayerName", title: "Nom calque contours (optionnel)", optional: true },
         { name: "MarkerSize", title: "Valeur taille marqueur (optionnel)", type: "Numeric", optional: true },
         { name: "MarkerSizeCap", title: "Plafond taille marqueur (optionnel)", type: "Numeric", optional: true },
         { name: "ColorBy", title: "Colonne pour colorer (optionnel, tout type)", optional: true },
@@ -330,9 +394,13 @@
       ]
     });
 
-    grist.onRecords((records) => {
+    grist.onRecords(async (records) => {
       setStatus("Données reçues, rendu de la carte…", "muted");
-      renderMarkers(records);
+      try {
+        await renderMarkers(records);
+      } catch (err) {
+        setStatus(`Erreur de rendu: ${err.message}`, 'err');
+      }
     });
   </script>
 </body>
