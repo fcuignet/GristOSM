@@ -40,6 +40,7 @@ Si tu n'utilises pas de stockage local, tu peux tout faire directement depuis l'
    - `Longitude` (numérique)
    - `Label` (texte, obligatoire) : nom principal
    - `Label2`, `Label3`, `Label4` (optionnel, tout type : texte / entier / choix / numérique / booléen)
+   - `Layer` (optionnel) : nom du calque de points (ex: "Clients", "Prospects", "Fournisseurs")
    - `MarkerSize` (numérique, optionnel) : valeur pour agrandir/réduire le marqueur
    - `MarkerSizeCap` (numérique, optionnel) : plafond max pour la valeur de taille
    - `ColorBy` (optionnel, tout type) : texte / entier / choix simple / choix multiple / numérique / booléen pour la couleur
@@ -57,6 +58,13 @@ Une légende de colorisation apparaît automatiquement sous la carte avec les ca
 
 Une palette personnalisée peut être choisie globalement via `ColorPalette`.
 
+Le contrôle Leaflet permet aussi de basculer entre plusieurs fonds de carte et d'afficher/masquer les calques de points par valeur de `Layer`.
+
 ## Licence
 
 Ce projet est distribué sous **GNU GPL v3** (voir `LICENSE`).
+
+## Fork pour gérer plusieurs calques
+
+Oui, tu peux forker ce dépôt puis continuer à l'adapter.
+Ce fork inclut maintenant un mode multi-calques via la colonne `Layer` pour grouper les points dans des calques séparés.
